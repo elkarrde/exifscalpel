@@ -1,15 +1,33 @@
 # Status
 
-*Last updated: 2026-06-20*
+*Last updated: 2026-06-21*
 
 | Field | Value |
 |:--|:--|
-| Phase | Phase 1 complete (`jpeg/` lifted + green) |
+| Phase | Phase 2 complete + EXIF conformance suite green |
 | Version | none (unreleased; module initialized) |
-| Build | `go build ./...` OK; `go vet ./...` clean |
-| Tests | `go test ./...` green; `jpeg/` 80.9% coverage |
+| Build | `go build`/`vet`/`gofmt` clean; main module has **no `go.sum`** (zero runtime deps) |
+| Tests | `go test ./...` green (`jpeg/` 80.9%, `exif/` 88.6%); `go -C conformance test ./...` green |
 | Published | not yet |
-| Next | handoff §4 Phase 2: `exif/` — resolve engine decision (§7) first, then lift lapis `parseEXIF`/`buildEXIF` + add `Find/Set/Remove/RemoveIFD` |
+| Next | **START HERE → handoff §4 Phase 3: `xmp/`** (see "Next session" below) |
+
+## ▶ Next session — start here
+
+**Phase 3: lift `xmp/` from tidy-exif `internal/meta/xmp.go`.**
+1. Read `../tidy-exif/internal/meta/xmp.go` + `xmp_test.go` (already verified accurate).
+2. Create `xmp/xmp.go`: export `Parse(payload) (*Fields, error)`, `Clean(payload,
+   replacements) (out, changed, err)`, `Fields` (handoff §3). Lift `parseXMP`,
+   `cleanXMP`, `marshalXMP`, `patchField`, `patchAll`, `adjustPadding`, `matchAttr`,
+   `nextCharData`, `ns*` consts. **Keep `patchAll`** — it handles attribute AND
+   element history forms (the §1.1 bug fix).
+3. Port tests **including the mandatory attribute-form history regression**
+   (`TestCleanAttributeHistoryEmptiesAgents`): assert length-preserved, no
+   `Adobe Photoshop` substring remains. Byte-fixtures only.
+4. Keep runtime stdlib-only (no `go.sum` in main module). `gofmt`/`vet`/`test` green.
+5. Then Phase 4: tag v0.1.0 (gate in handoff §4) — and optionally extend
+   `conformance/` per its README "Next" (XMP via exiftool, fuzzing).
+
+Decisions are all locked (handoff §7); no open questions blocking Phase 3.
 
 ## Notes
 
@@ -34,9 +52,24 @@ SOS-tail handling, FF-padding skip, error paths, and the identification predicat
 `go build`/`vet`/`test` all green; `jpeg/` at 80.9% coverage (uncovered lines are
 I/O-error returns).
 
-**Decision pending before Phase 2:** the `exif` engine — lift lapis's lean
-zero-dependency engine (recommended, matches both tools' no-deps ethos) vs depend on
-`dsoprea/go-exif/v3` (handoff §7/§9).
+2026-06-21: **Phase 2** — `exif/` package. Resolved the §7 open decisions (recorded
+in handoff §7): **lapis zero-dep engine**, **mutate `*Data`** via
+`Find/Set/Remove/RemoveIFD`, **both edit modes exposed**. Rebuild = `(*Data).Build`
+(lifts lapis `parseEXIF`/`buildEXIF`; length may change; `Build` now self-reconciles
+sub-IFD pointers). In-place length-preserving = `OverwriteValueInPlace`/`ReadValue`
+(re-expressed from tidy-exif `cleanExifSoftware`, generalized to any IFD0 tag).
+Exported tags: `SoftwareTag`, `ExifIFDPointer`, `GPSIFDPointer`. Tests cover both
+byte orders (II/MM), in-place inline vs offset values, rebuild scrub, ported lapis
+GPS IFD removal, and parse round-trip. `exif/` 88.6% coverage. Left lapis's
+journalist/scout filter maps behind (policy).
+
+2026-06-21: Recorded the **dependency policy** (`CONTRIBUTING.md`, CLAUDE.md, handoff
+§10): "no deps" = zero *runtime* baggage; dev/test tooling is unrestricted but heavy
+deps go in a side module. Added **`conformance/`** — a separate Go module
+(`replace … => ../`) with differential EXIF tests vs. `dsoprea/go-exif/v3`. Two tests
+green: a reference reader parses our `Build` output, and confirms GPS removal +
+Software scrub. Isolation verified: main module still has no `go.sum`; `./...` does
+not descend into `conformance/`.
 
 Consumers to migrate once published (decoupled, either first):
 [tidy-exif](../tidy-exif/) (Phase 5) and [lapis](../lapis/) (Phase 6).

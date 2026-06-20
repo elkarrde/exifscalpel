@@ -1,0 +1,58 @@
+{
+  "folders": [
+    {
+      "name": "exifscalpel",
+      "path": "./",
+      "folder_exclude_patterns": [
+        ".git", ".github", ".claude"
+      ],
+      "file_exclude_patterns": [
+        "*.bak", "*.sublime-workspace"
+      ]
+    }
+  ],
+  "settings": {
+    "translate_tabs_to_spaces": false,
+    "tab_size": 4,
+    "trim_automatic_white_space": true,
+    "trim_trailing_white_space_on_save": true,
+    "rulers": [80, 100],
+    "highlight_line": true,
+    "word_wrap": false,
+    "highlight_modified_tabs": true,
+    "find_selected_text": true,
+    "default_line_ending": "unix"
+  },
+  "build_systems": [
+    {
+      "name": "exifscalpel: build",
+      "shell_cmd": "go build ./... && go vet ./...",
+      "working_dir": "${project_path}",
+      "file_regex": "^(.+\\.go):([0-9]+):([0-9]+):"
+    },
+    {
+      "name": "exifscalpel: test",
+      "shell_cmd": "go test ./...",
+      "working_dir": "${project_path}",
+      "file_regex": "^(.+\\.go):([0-9]+):([0-9]+):"
+    },
+    {
+      "name": "exifscalpel: test (cover)",
+      "shell_cmd": "go test -cover ./...",
+      "working_dir": "${project_path}",
+      "file_regex": "^(.+\\.go):([0-9]+):([0-9]+):"
+    },
+    {
+      "name": "exifscalpel: gofmt check",
+      "shell_cmd": "gofmt -l .",
+      "working_dir": "${project_path}",
+      "file_regex": "^(.+\\.go)$"
+    },
+    {
+      "name": "exifscalpel: conformance",
+      "shell_cmd": "go -C conformance test ./...",
+      "working_dir": "${project_path}",
+      "file_regex": "^(.+\\.go):([0-9]+):([0-9]+):"
+    }
+  ]
+}

@@ -4,12 +4,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Current state
 
-**Pre-code / planning.** The repo is scaffolded (LICENSE, README, STATUS, CHANGELOG,
-`.gitignore`) but contains **no Go code yet** — no `go.mod`. The complete, cold-start
-build plan is **`exifscalpel-HANDOFF.md`** — treat it as the source of truth for
-provenance, package layout, API signatures, the 7-phase migration, and required
-tests. `STATUS.md` tracks current phase. When the plan and this file disagree, the
-handoff wins; update `STATUS.md` as phases land.
+**Phases 0–2 done (green).** `jpeg/` and `exif/` are lifted and tested; `xmp/` is
+**next (Phase 3)**. The complete, cold-start build plan is **`exifscalpel-HANDOFF.md`**
+— treat it as the source of truth for provenance, package layout, API signatures, the
+7-phase migration, and required tests. `STATUS.md` tracks current phase and carries a
+"start here next session" pointer. When the plan and this file disagree, the handoff
+wins; update `STATUS.md` as phases land.
 
 ## What this is
 
@@ -61,6 +61,23 @@ Hard rules that shape the design:
    verbatim. Standalone markers (SOI/EOI/RST) carry no length; skip legal `0xFF`
    padding before a marker.
 
+## Dependency policy ("no deps" = zero *runtime* baggage)
+
+The motto is about the **shipped artifacts** (the Lapis/TidyExif binaries), not
+development. Two tiers, see `CONTRIBUTING.md`:
+
+- **Runtime** — the library (`jpeg/`, `exif/`, `xmp/`, root): **stdlib only, forever.**
+  No non-test file in the main module may import a third-party package. This is why
+  the main module has **no `go.sum`** and why both consumers inherit zero transitive
+  deps. Wanting a third-party parser in engine code is a design smell — the engines
+  are deliberately hand-rolled (handoff §7/§9).
+- **Dev/test** — unrestricted (reference impls, fuzzing, property tests). Go keeps
+  these out of consumers (test-only imports aren't compiled downstream; go 1.17+
+  graph pruning keeps them out of consumers' graphs). Because Go has no
+  `devDependencies` field, **heavy dev tooling lives in a separate module** so the
+  main `go.mod` stays dependency-free. See `conformance/` — a differential EXIF suite
+  vs. `dsoprea/go-exif/v3`, in its own module with `replace … => ../`.
+
 ## Test conventions
 
 - **Byte-fixtures only — no real photos in the repo.** Real JPEGs stay gitignored in
@@ -68,19 +85,26 @@ Hard rules that shape the design:
 - Mandatory fixtures (handoff §5): XMP attribute-form history regression; EXIF
   Software round-trip in both byte orders (II/MM); EXIF in-place vs rebuild for
   whichever modes are exposed; ported lapis EXIF behaviors (GPS IFD removal).
+- **Differential testing** lives in `conformance/` (separate module): validate the
+  hand-rolled engines against a mature reference reader. Runtime stays dep-free.
 
-## Commands (once Go code exists)
+## Commands
 
 ```bash
-go mod init codeberg.org/elkarrde/exifscalpel   # Phase 0, go 1.22
-go build ./...
-go vet ./... && go test ./...
-go test ./xmp/ -run TestCleanAttributeHistoryEmptiesAgents   # single test
+go build ./... && go vet ./... && go test ./...   # library (stdlib only)
 go test -cover ./...
+gofmt -l .                                         # must be empty
+go test ./xmp/ -run TestCleanAttributeHistoryEmptiesAgents   # single test (Phase 3)
+go -C conformance test ./...                       # differential EXIF suite (separate module)
 ```
 
-## Open decision before Phase 2
+Requires Go **1.22+** (system toolchain at `/usr/local/go`). `./...` does **not**
+descend into `conformance/` — it's a separate module.
 
-The `exif` engine: **lift lapis's lean zero-dependency engine (recommended**, matches
-both tools' no-deps ethos) vs depend on `dsoprea/go-exif/v3`. Record the choice in
-the handoff/STATUS before writing `exif/`. See handoff §7 and §9.
+## Resolved decisions (were open; see handoff §7)
+
+- **`exif` engine** → lift lapis's lean zero-dep engine (done, Phase 2). dsoprea is
+  used only as a *test oracle* in `conformance/`, never at runtime.
+- **EXIF edit API** → mutate `*Data` (`Find/Set/Remove/RemoveIFD`).
+- **In-place vs rebuild** → both exposed: `(*Data).Build` (rebuild) and
+  `exif.OverwriteValueInPlace` (length-preserving).
