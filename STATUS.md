@@ -1,33 +1,30 @@
 # Status
 
-*Last updated: 2026-06-21*
+*Last updated: 2026-06-23*
 
 | Field | Value |
 |:--|:--|
-| Phase | Phase 2 complete + EXIF conformance suite green |
+| Phase | Phase 3 complete (all three packages green) + EXIF conformance suite green |
 | Version | none (unreleased; module initialized) |
 | Build | `go build`/`vet`/`gofmt` clean; main module has **no `go.sum`** (zero runtime deps) |
-| Tests | `go test ./...` green (`jpeg/` 80.9%, `exif/` 88.6%); `go -C conformance test ./...` green |
+| Tests | `go test ./...` green (`jpeg/` 80.9%, `exif/` 88.6%, `xmp/` 86.4%); `go -C conformance test ./...` green |
 | Published | not yet |
-| Next | **START HERE → handoff §4 Phase 3: `xmp/`** (see "Next session" below) |
+| Next | **START HERE → handoff §4 Phase 4: tag `v0.1.0`** (see "Next session" below) |
 
 ## ▶ Next session — start here
 
-**Phase 3: lift `xmp/` from tidy-exif `internal/meta/xmp.go`.**
-1. Read `../tidy-exif/internal/meta/xmp.go` + `xmp_test.go` (already verified accurate).
-2. Create `xmp/xmp.go`: export `Parse(payload) (*Fields, error)`, `Clean(payload,
-   replacements) (out, changed, err)`, `Fields` (handoff §3). Lift `parseXMP`,
-   `cleanXMP`, `marshalXMP`, `patchField`, `patchAll`, `adjustPadding`, `matchAttr`,
-   `nextCharData`, `ns*` consts. **Keep `patchAll`** — it handles attribute AND
-   element history forms (the §1.1 bug fix).
-3. Port tests **including the mandatory attribute-form history regression**
-   (`TestCleanAttributeHistoryEmptiesAgents`): assert length-preserved, no
-   `Adobe Photoshop` substring remains. Byte-fixtures only.
-4. Keep runtime stdlib-only (no `go.sum` in main module). `gofmt`/`vet`/`test` green.
-5. Then Phase 4: tag v0.1.0 (gate in handoff §4) — and optionally extend
-   `conformance/` per its README "Next" (XMP via exiftool, fuzzing).
+**Phase 4: tag `exifscalpel` v0.1.0** — first consumable release.
+Gate (handoff §4), all currently satisfied:
+1. All three packages green (`jpeg`/`exif`/`xmp`) — ✅
+2. `conformance/` green (differential EXIF vs. dsoprea, §10) — ✅
+3. `gofmt`/`vet` clean — ✅
+4. Main module still has **no `go.sum`** (zero runtime deps) — ✅
 
-Decisions are all locked (handoff §7); no open questions blocking Phase 3.
+Optional before/after the tag: extend `conformance/` per its README "Next"
+(XMP via `exiftool` oracle, fuzzing). Then Phases 5/6 migrate tidy-exif and
+lapis onto the library (decoupled; either first).
+
+Decisions are all locked (handoff §7); no open questions blocking Phase 4.
 
 ## Notes
 
@@ -73,3 +70,17 @@ not descend into `conformance/`.
 
 Consumers to migrate once published (decoupled, either first):
 [tidy-exif](../tidy-exif/) (Phase 5) and [lapis](../lapis/) (Phase 6).
+
+2026-06-23: **Phase 3** — `xmp/` package, lifted from tidy-exif
+`internal/meta/xmp.go`. Exported `Parse(payload) (*Fields, error)`,
+`Clean(payload, replacements) (out, changed, err)`, `Fields`/`Fields.Any()`.
+Lifted `cleanFields`/`marshal`/`patchField`/`patchAll`/`adjustPadding`/
+`matchAttr`/`nextCharData` + `ns*` consts unexported. **Kept `patchAll`** (the
+attribute-form history bug fix). Dropped the JPEG-level orchestration
+(`ParseXMPFromJPEG`/`CleanXMPInJPEG`) — that is consumer policy and would import
+`jpeg`; `xmp` takes a payload starting with the xap signature (= `jpeg.Segment.Data`
+for an XMP segment), like `exif.Parse`. Ported all tests incl. the mandatory
+`TestCleanAttributeHistoryEmptiesAgents` regression (length-preserved, no
+`Adobe Photoshop` substring, reparses to `Any()==false`). `xmp/` at 86.4%
+coverage; `build`/`vet`/`gofmt`/`test ./...` green; main module still no `go.sum`.
+All three packages now green → Phase 4 (tag v0.1.0) gate is met.
