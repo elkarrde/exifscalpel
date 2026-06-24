@@ -4,26 +4,35 @@
 
 | Field | Value |
 |:--|:--|
-| Phase | Phase 4 complete — `v0.1.0` tagged (all three packages green + EXIF conformance green) |
-| Version | `v0.1.0` (tagged; push to publish) |
+| Phase | Phase 6 done (lapis migrated, green). Phase 4 `v0.1.0` published; Phase 5 (tidy-exif) handoff written, not yet executed |
+| Version | `v0.1.0` (tagged + pushed; resolvable via Go proxy) |
 | Build | `go build`/`vet`/`gofmt` clean; main module has **no `go.sum`** (zero runtime deps) |
 | Tests | `go test ./...` green (`jpeg/` 80.9%, `exif/` 88.6%, `xmp/` 86.4%); `go -C conformance test ./...` green |
-| Published | tag created locally; **`git push --tags` pending** |
-| Next | **START HERE → handoff §5/§6: migrate consumers onto the library** (see "Next session" below) |
+| Published | `v0.1.0` pushed; lapis now requires it (zero transitive deps) |
+| Next | **START HERE → Phase 5: execute the tidy-exif migration** per `../tidy-exif/MIGRATION.md` |
 
 ## ▶ Next session — start here
 
-**Phases 5 & 6: migrate the consumers onto `exifscalpel` (decoupled — either first).**
-- Phase 5 — tidy-exif (`../tidy-exif/`): replace `internal/meta/{xmp,exif}.go` engine
-  with imports of `exifscalpel/{xmp,exif}`; keep the Adobe-only gate + orchestration
-  (`InspectJPEG`/`CleanJPEG`) as policy in the CLI.
-- Phase 6 — lapis (`../lapis/`): replace `internal/strip/{strip,exif}.go` with
-  `exifscalpel/{jpeg,exif}`; keep `Strip` (paranoia levels) as policy.
+**Phase 5: migrate tidy-exif onto `exifscalpel`.** The full step-by-step (go.mod
+bump 1.16→1.22, symbol-by-symbol mapping, what stays as policy, tests, acceptance
+gate) is written in **`../tidy-exif/MIGRATION.md`**. lapis (Phase 6) is the worked
+reference for the same pattern — see `../lapis/internal/strip/{strip,exif}.go`.
 
-Before either: confirm `v0.1.0` is pushed so consumers can `go get` it.
+Key facts for tidy-exif: the CLI (`cmd/tidy-exif/`) needs **no changes** (its
+`report.XMP.{CreatorTool,SoftwareAgents}` accesses line up with `xmp.Fields`); only
+`internal/meta/` changes. Keep `isAdobeSoftware` (the Adobe-only gate) and
+`InspectJPEG`/`CleanJPEG` (orchestration) as policy.
+
+**Phase 6 done (2026-06-24):** lapis migrated. `internal/strip/{strip,exif}.go` now
+import `exifscalpel/{jpeg,exif}`; the engine code is deleted and all policy
+(`Level`/`ParseLevel`/`Strip`/`processSegments`, the keep/remove tag maps) stays.
+`strip_test.go` rebuilt on library types. `go build`/`vet`/`gofmt`/`test ./...`
+green; `go mod graph` shows one new edge (exifscalpel, zero transitive deps).
+**Changes are uncommitted in `../lapis/`** — commit when ready.
 
 Optional polish: extend `conformance/` per its README "Next" (XMP via `exiftool`
-oracle, fuzzing).
+oracle, fuzzing). Phase 7 (optional): new lapis level that scrubs XMP fields via
+`xmp.Clean` instead of excising the segment.
 
 Decisions are all locked (handoff §7); no open questions blocking Phase 4.
 
