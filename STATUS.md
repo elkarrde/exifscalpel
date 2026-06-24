@@ -1,28 +1,29 @@
 # Status
 
-*Last updated: 2026-06-23*
+*Last updated: 2026-06-24*
 
 | Field | Value |
 |:--|:--|
-| Phase | Phase 3 complete (all three packages green) + EXIF conformance suite green |
-| Version | none (unreleased; module initialized) |
+| Phase | Phase 4 complete — `v0.1.0` tagged (all three packages green + EXIF conformance green) |
+| Version | `v0.1.0` (tagged; push to publish) |
 | Build | `go build`/`vet`/`gofmt` clean; main module has **no `go.sum`** (zero runtime deps) |
 | Tests | `go test ./...` green (`jpeg/` 80.9%, `exif/` 88.6%, `xmp/` 86.4%); `go -C conformance test ./...` green |
-| Published | not yet |
-| Next | **START HERE → handoff §4 Phase 4: tag `v0.1.0`** (see "Next session" below) |
+| Published | tag created locally; **`git push --tags` pending** |
+| Next | **START HERE → handoff §5/§6: migrate consumers onto the library** (see "Next session" below) |
 
 ## ▶ Next session — start here
 
-**Phase 4: tag `exifscalpel` v0.1.0** — first consumable release.
-Gate (handoff §4), all currently satisfied:
-1. All three packages green (`jpeg`/`exif`/`xmp`) — ✅
-2. `conformance/` green (differential EXIF vs. dsoprea, §10) — ✅
-3. `gofmt`/`vet` clean — ✅
-4. Main module still has **no `go.sum`** (zero runtime deps) — ✅
+**Phases 5 & 6: migrate the consumers onto `exifscalpel` (decoupled — either first).**
+- Phase 5 — tidy-exif (`../tidy-exif/`): replace `internal/meta/{xmp,exif}.go` engine
+  with imports of `exifscalpel/{xmp,exif}`; keep the Adobe-only gate + orchestration
+  (`InspectJPEG`/`CleanJPEG`) as policy in the CLI.
+- Phase 6 — lapis (`../lapis/`): replace `internal/strip/{strip,exif}.go` with
+  `exifscalpel/{jpeg,exif}`; keep `Strip` (paranoia levels) as policy.
 
-Optional before/after the tag: extend `conformance/` per its README "Next"
-(XMP via `exiftool` oracle, fuzzing). Then Phases 5/6 migrate tidy-exif and
-lapis onto the library (decoupled; either first).
+Before either: confirm `v0.1.0` is pushed so consumers can `go get` it.
+
+Optional polish: extend `conformance/` per its README "Next" (XMP via `exiftool`
+oracle, fuzzing).
 
 Decisions are all locked (handoff §7); no open questions blocking Phase 4.
 
