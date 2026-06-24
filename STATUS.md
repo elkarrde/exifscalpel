@@ -4,35 +4,40 @@
 
 | Field | Value |
 |:--|:--|
-| Phase | Phase 6 done (lapis migrated, green). Phase 4 `v0.1.0` published; Phase 5 (tidy-exif) handoff written, not yet executed |
+| Phase | **Phases 0–6 all done.** v0.1.0 published; both consumers (lapis + tidy-exif) migrated and green. Only optional Phase 7 / conformance polish remain |
 | Version | `v0.1.0` (tagged + pushed; resolvable via Go proxy) |
 | Build | `go build`/`vet`/`gofmt` clean; main module has **no `go.sum`** (zero runtime deps) |
 | Tests | `go test ./...` green (`jpeg/` 80.9%, `exif/` 88.6%, `xmp/` 86.4%); `go -C conformance test ./...` green |
-| Published | `v0.1.0` pushed; lapis now requires it (zero transitive deps) |
-| Next | **START HERE → Phase 5: execute the tidy-exif migration** per `../tidy-exif/MIGRATION.md` |
+| Published | `v0.1.0` pushed; lapis + tidy-exif both require it (zero transitive deps added) |
+| Next | Optional only — Phase 7 (lapis XMP-scrub level via `xmp.Clean`) or conformance extensions |
 
 ## ▶ Next session — start here
 
-**Phase 5: migrate tidy-exif onto `exifscalpel`.** The full step-by-step (go.mod
-bump 1.16→1.22, symbol-by-symbol mapping, what stays as policy, tests, acceptance
-gate) is written in **`../tidy-exif/MIGRATION.md`**. lapis (Phase 6) is the worked
-reference for the same pattern — see `../lapis/internal/strip/{strip,exif}.go`.
+**Core migration is complete (Phases 0–6).** The library is published at `v0.1.0`
+and both sibling CLIs now consume it; their own engine copies are deleted. Remaining
+work is all optional:
 
-Key facts for tidy-exif: the CLI (`cmd/tidy-exif/`) needs **no changes** (its
-`report.XMP.{CreatorTool,SoftwareAgents}` accesses line up with `xmp.Fields`); only
-`internal/meta/` changes. Keep `isAdobeSoftware` (the Adobe-only gate) and
-`InspectJPEG`/`CleanJPEG` (orchestration) as policy.
+- **Phase 7 (new capability):** add a lapis level that *scrubs* identifying XMP
+  fields via `xmp.Clean` (keeping the XMP block) instead of excising the whole APP1
+  segment — the extensibility payoff the shared core unlocks. See handoff §4 Phase 7.
+- **Conformance extensions** (`conformance/` README "Next"): XMP differential via an
+  `exiftool` oracle; fuzzing the parsers.
 
-**Phase 6 done (2026-06-24):** lapis migrated. `internal/strip/{strip,exif}.go` now
-import `exifscalpel/{jpeg,exif}`; the engine code is deleted and all policy
-(`Level`/`ParseLevel`/`Strip`/`processSegments`, the keep/remove tag maps) stays.
-`strip_test.go` rebuilt on library types. `go build`/`vet`/`gofmt`/`test ./...`
-green; `go mod graph` shows one new edge (exifscalpel, zero transitive deps).
-**Changes are uncommitted in `../lapis/`** — commit when ready.
+**Phase 5 done (2026-06-24):** tidy-exif migrated. Deleted `internal/meta/{jpeg,xmp}.go`
+and the EXIF engine in `exif.go` (kept only `isAdobeSoftware`, the Adobe-only gate).
+`inspect.go` now drives `jpeg`/`xmp`/`exif`: `xmp.Clean` for the XMP segment,
+`exif.ReadValue`/`exif.OverwriteValueInPlace(SoftwareTag)` for EXIF; the
+`ParseXMPFromJPEG`/`CleanXMPInJPEG` convenience wrappers were re-homed here over the
+library. `FileReport.XMP` is now `*xmp.Fields`; **the CLI needed no changes**
+(`report.XMP.{CreatorTool,SoftwareAgents}` + `report.HasAdobeData()` all still
+resolve). go.mod bumped 1.16→1.22. Engine-only tests dropped (covered in the lib);
+the mandatory attribute-form regression kept at the CleanJPEG integration level.
+build/vet/test green; only one new dep (exifscalpel, zero transitive). **Uncommitted
+in `../tidy-exif/`**; `MIGRATION.md` there is now executed (delete or keep as record).
 
-Optional polish: extend `conformance/` per its README "Next" (XMP via `exiftool`
-oracle, fuzzing). Phase 7 (optional): new lapis level that scrubs XMP fields via
-`xmp.Clean` instead of excising the segment.
+**Phase 6 done (2026-06-24):** lapis migrated. `internal/strip/{strip,exif}.go` import
+`exifscalpel/{jpeg,exif}`; engine deleted, all policy kept. Green; one new dep,
+zero transitive. **Committed in `../lapis/`** by the user.
 
 Decisions are all locked (handoff §7); no open questions blocking Phase 4.
 
