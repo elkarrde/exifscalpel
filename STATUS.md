@@ -1,17 +1,34 @@
 # Status
 
-*Last updated: 2026-06-24*
+*Last updated: 2026-07-02*
 
 | Field | Value |
 |:--|:--|
-| Phase | **Phases 0–6 all done.** v0.1.0 published; both consumers (lapis + tidy-exif) migrated and green. Only optional Phase 7 / conformance polish remain |
-| Version | `v0.1.0` (tagged + pushed; resolvable via Go proxy) |
+| Phase | **Phases 0–6 done + location primitives added (0.2.0).** New `iptc` package and `xmp.CleanLocation` land for the lapis `no-gps` location-stripping work |
+| Version | `v0.2.0` (**code committed; tag + push pending**) — 0.1.0 remains tagged/pushed and proxy-resolvable |
 | Build | `go build`/`vet`/`gofmt` clean; main module has **no `go.sum`** (zero runtime deps) |
-| Tests | `go test ./...` green (`jpeg/` 80.9%, `exif/` 88.6%, `xmp/` 86.4%); `go -C conformance test ./...` green |
-| Published | `v0.1.0` pushed; lapis + tidy-exif both require it (zero transitive deps added) |
-| Next | Optional only — Phase 7 (lapis XMP-scrub level via `xmp.Clean`) or conformance extensions |
+| Tests | `go test ./...` green (`jpeg`, `exif`, `xmp`, new `iptc`); `go -C conformance test ./...` green |
+| Published | `v0.1.0` pushed. **v0.2.0 not yet tagged/pushed** — required before lapis can `go get`/re-vendor it |
+| Next | Tag + push `v0.2.0`, then lapis: bump `go.mod`, `go mod vendor`, wire `no-gps` policy (`iptc.Remove` + `xmp.CleanLocation`) |
 
 ## ▶ Next session — start here
+
+**0.2.0 location primitives are written, tested, and committed (`6a31adc`), but not
+yet released.** To finish:
+
+1. **Tag + push** `v0.2.0` from this repo (see below) so the Go proxy can resolve it.
+2. In **lapis**: `go get codeberg.org/elkarrde/exifscalpel@v0.2.0`, then
+   `go mod vendor`, commit; add the `no-gps` policy — `iptc.Parse` → `Remove` the
+   record-2 location datasets (2:26, 2:27, 2:90, 2:92, 2:95, 2:100, 2:101) → `Build`
+   (drop APP13 if `Empty`); plus an XMP branch running `xmp.CleanLocation` (today
+   `no-gps` leaves XMP untouched). See `../lapis/docs/IPTC-XMP-LOCATION-SCOPE.md`.
+
+Note on the structured `Iptc4xmpExt` scope: implemented as value-blanking at every
+nesting depth (not container deletion), keeping edits length-preserving and the XML
+well-formed. The empty `LocationCreated`/`LocationShown` containers remain but carry
+no data.
+
+## ▶ Prior milestone — start here (0.1.0)
 
 **Core migration is complete (Phases 0–6).** The library is published at `v0.1.0`
 and both sibling CLIs now consume it; their own engine copies are deleted. Remaining
