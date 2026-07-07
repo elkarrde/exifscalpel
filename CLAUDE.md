@@ -4,12 +4,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Current state
 
-**Phases 0–2 done (green).** `jpeg/` and `exif/` are lifted and tested; `xmp/` is
-**next (Phase 3)**. The complete, cold-start build plan is **`exifscalpel-HANDOFF.md`**
-— treat it as the source of truth for provenance, package layout, API signatures, the
-7-phase migration, and required tests. `STATUS.md` tracks current phase and carries a
-"start here next session" pointer. When the plan and this file disagree, the handoff
-wins; update `STATUS.md` as phases land.
+**Migration complete; library published and in active use.** All four packages —
+`jpeg`, `exif`, `xmp`, `iptc` — are built, tested, and green; current release is
+**v0.3.1** (see `CHANGELOG.md`). The 7-phase migration that stood the library up is
+finished, so the phase numbering here and in the handoff is now historical record,
+not a live plan.
+
+The cold-start build plan **`exifscalpel-HANDOFF.md`** remains the source of truth
+for **provenance** and the **non-obvious invariants** (§1, below) — but for current
+*behavior*, the code and tests win. `STATUS.md` tracks live project state and carries
+a "start here next session" pointer; keep it current as things land.
 
 ## What this is
 
