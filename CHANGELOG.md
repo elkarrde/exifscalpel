@@ -5,6 +5,25 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-07-07
+
+Read-only XMP property extraction, additive and backward compatible: existing
+`jpeg`, `exif`, `iptc`, and `xmp` Parse/Clean behavior is unchanged, so consumers
+on 0.2.0 are unaffected. Still stdlib-only at runtime. Motivated by film-scan
+metadata (ExifNotes/AnalogExif), which writes a structured, cleaner copy of its
+fields to XMP than to the EXIF `UserComment` text block — including the lens and
+scanner software, which the EXIF block omits entirely.
+
+### Added
+
+- **`xmp.ReadProperties`** — extract arbitrary simple (scalar) XMP properties from
+  an APP1 payload, matched by namespace URI + local name (prefix-independent).
+  Recognises both attribute form (`ns:Name="value"`, how AnalogExif/aux write
+  scalars on `rdf:Description`) and simple element form (`<ns:Name>value</ns:Name>`).
+  Read-only, no vocabulary of its own — the caller names the namespaces/fields it
+  wants (e.g. the AnalogExif film schema, `aux:Lens`); policy stays in the consumer.
+  New `xmp.Property{Namespace, Name}` type keys the request and the result map.
+
 ## [0.2.0] - 2026-07-02
 
 Location-stripping primitives for the `no-gps` use case: a new `iptc` package and

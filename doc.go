@@ -20,7 +20,8 @@
 //   - jpeg — JPEG segment parse/write plus segment identification
 //     (IsEXIF/IsXMP). Depends only on the standard library.
 //   - exif — TIFF/IFD parse and rebuild, with tag-level edit helpers.
-//   - xmp — XMP field-level surgery, length-preserving.
+//   - xmp — XMP field-level surgery, length-preserving, plus read-only
+//     extraction of arbitrary XMP properties by namespace (ReadProperties).
 //
 // exif and xmp take a segment payload ([]byte) and return bytes; they do not
 // import jpeg, so each package stays independently usable and testable.
