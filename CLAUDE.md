@@ -82,6 +82,13 @@ development. Two tiers, see `CONTRIBUTING.md`:
 
 - **Byte-fixtures only — no real photos in the repo.** Real JPEGs stay gitignored in
   tidy-exif's `testdata/`. Build minimal Exif/XMP segments programmatically.
+- **Real-photo corpus for manual/ad-hoc testing lives OUTSIDE the repo** at
+  `../masterdata/testdata` (`/home/elkarrde/Code/iso3200/masterdata/testdata`, ~30
+  JPEGs, ~118M — never commit these). Broad camera coverage plus film scans; the
+  `Scan-*` files (e.g. `Scan-260309-0008 (Tokina80-200) e.jpg`) carry real
+  AnalogExif + `aux` XMP (`Film`, `FilmMaker`, `DevelopProcess`, `Developer`,
+  `Scanner`, `ScannerSoftware`, `aux:Lens`) — the exact shape `xmp.ReadProperties`
+  targets. Use for spot-checks; keep committed tests on programmatic byte-fixtures.
 - Mandatory fixtures (handoff §5): XMP attribute-form history regression; EXIF
   Software round-trip in both byte orders (II/MM); EXIF in-place vs rebuild for
   whichever modes are exposed; ported lapis EXIF behaviors (GPS IFD removal).

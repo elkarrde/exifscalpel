@@ -32,15 +32,21 @@ type Property struct {
 // aux:Lens) and policy stays in the caller. Results are keyed by the same
 // Property values passed in. The payload must begin with the Adobe xap namespace
 // signature (as jpeg.Segment.Data for an XMP segment does).
+//
+// Parsing is best-effort: the error result is non-nil only when the payload lacks
+// the XMP signature. A malformed or truncated packet is not reported as an error —
+// whatever was collected before the fault is returned, so an absent property and a
+// parse failure are indistinguishable from the result alone.
 func ReadProperties(payload []byte, want []Property) (map[Property]string, error) {
 	if !bytes.HasPrefix(payload, xmpSig) {
 		return nil, fmt.Errorf("xmp: not an XMP segment")
 	}
 
-	type key struct{ ns, local string }
-	index := make(map[key]Property, len(want))
+	// Property is already the exact (namespace, name) key shape, so it doubles as
+	// the lookup key; matching is by namespace URI + local name, prefix-independent.
+	index := make(map[Property]struct{}, len(want))
 	for _, p := range want {
-		index[key{p.Namespace, p.Name}] = p
+		index[p] = struct{}{}
 	}
 
 	out := make(map[Property]string)
@@ -53,7 +59,7 @@ func ReadProperties(payload []byte, want []Property) (map[Property]string, error
 			break
 		}
 		if err != nil {
-			break // return whatever was collected before the error
+			break // best-effort: return whatever was collected before the error
 		}
 		se, ok := tok.(xml.StartElement)
 		if !ok {
@@ -62,8 +68,8 @@ func ReadProperties(payload []byte, want []Property) (map[Property]string, error
 
 		// Attribute form: ns:Name="value" on any element.
 		for _, a := range se.Attr {
-			p, ok := index[key{a.Name.Space, a.Name.Local}]
-			if !ok || a.Value == "" {
+			p := Property{a.Name.Space, a.Name.Local}
+			if _, ok := index[p]; !ok || a.Value == "" {
 				continue
 			}
 			if _, seen := out[p]; !seen {
@@ -72,7 +78,8 @@ func ReadProperties(payload []byte, want []Property) (map[Property]string, error
 		}
 
 		// Element form: <ns:Name>value</ns:Name>.
-		if p, ok := index[key{se.Name.Space, se.Name.Local}]; ok {
+		p := Property{se.Name.Space, se.Name.Local}
+		if _, ok := index[p]; ok {
 			if _, seen := out[p]; !seen {
 				if v := nextCharData(dec); v != "" {
 					out[p] = v

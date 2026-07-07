@@ -1,32 +1,31 @@
 # Status
 
-*Last updated: 2026-07-02*
+*Last updated: 2026-07-08*
 
 | Field | Value |
 |:--|:--|
-| Phase | **Phases 0–6 done + location primitives added (0.2.0).** New `iptc` package and `xmp.CleanLocation` land for the lapis `no-gps` location-stripping work |
-| Version | `v0.2.0` (**code committed; tag + push pending**) — 0.1.0 remains tagged/pushed and proxy-resolvable |
+| Phase | **Phases 0–6 done; read-only XMP extraction added.** `xmp.ReadProperties` (film-scan/AnalogExif fields) lands on top of the 0.2.0 location primitives (`iptc` + `xmp.CleanLocation`) |
+| Version | `v0.3.1` (tagged + pushed to both remotes; proxy-resolvable). **0.3.0 was skipped** — tagged locally but never pushed; `ReadProperties` ships in 0.3.1 |
 | Build | `go build`/`vet`/`gofmt` clean; main module has **no `go.sum`** (zero runtime deps) |
-| Tests | `go test ./...` green (`jpeg`, `exif`, `xmp`, new `iptc`); `go -C conformance test ./...` green |
-| Published | `v0.1.0` pushed. **v0.2.0 not yet tagged/pushed** — required before lapis can `go get`/re-vendor it |
-| Next | Tag + push `v0.2.0`, then lapis: bump `go.mod`, `go mod vendor`, wire `no-gps` policy (`iptc.Remove` + `xmp.CleanLocation`) |
+| Tests | `go test ./...` green (`jpeg`, `exif`, `xmp`, `iptc`); `go -C conformance test ./...` green |
+| Published | `v0.1.0`, `v0.2.0`, `v0.3.1` pushed to origin (Codeberg) + github. `v0.3.0` deliberately unreleased |
+| Next | Optional: adopt `xmp.ReadProperties` in a consumer (e.g. tidy-exif film-scan reporting); Phase 7 (lapis XMP-scrub level); conformance extensions (XMP oracle, fuzzing) |
 
 ## ▶ Next session — start here
 
-**0.2.0 location primitives are written, tested, and committed (`6a31adc`), but not
-yet released.** To finish:
+**Nothing pending to release.** `v0.3.1` is the current published release (Codeberg +
+github, proxy-resolvable); `v0.3.0` was intentionally skipped (local-only tag, never
+pushed — see CHANGELOG). All library work through read-only XMP extraction is
+committed and green.
 
-1. **Tag + push** `v0.2.0` from this repo (see below) so the Go proxy can resolve it.
-2. In **lapis**: `go get codeberg.org/elkarrde/exifscalpel@v0.2.0`, then
-   `go mod vendor`, commit; add the `no-gps` policy — `iptc.Parse` → `Remove` the
-   record-2 location datasets (2:26, 2:27, 2:90, 2:92, 2:95, 2:100, 2:101) → `Build`
-   (drop APP13 if `Empty`); plus an XMP branch running `xmp.CleanLocation` (today
-   `no-gps` leaves XMP untouched). See `../lapis/docs/IPTC-XMP-LOCATION-SCOPE.md`.
+Remaining work is all optional and consumer-side:
 
-Note on the structured `Iptc4xmpExt` scope: implemented as value-blanking at every
-nesting depth (not container deletion), keeping edits length-preserving and the XML
-well-formed. The empty `LocationCreated`/`LocationShown` containers remain but carry
-no data.
+1. **Consume `xmp.ReadProperties`** where it helps — e.g. tidy-exif reporting the
+   AnalogExif film/lens/scanner fields that the EXIF `UserComment` blob omits. The
+   real-photo film scans for spot-checking live outside the repo at
+   `../masterdata/testdata` (`Scan-*` files carry AnalogExif + `aux` XMP).
+2. **Phase 7** (lapis XMP-scrub level via `xmp.Clean`) and **conformance extensions**
+   (XMP differential via an `exiftool` oracle; fuzzing) — see below.
 
 ## ▶ Prior milestone — start here (0.1.0)
 

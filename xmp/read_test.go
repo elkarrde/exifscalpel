@@ -81,3 +81,88 @@ func TestReadPropertiesNotXMP(t *testing.T) {
 		t.Error("expected an error for a non-XMP payload")
 	}
 }
+
+const nsT = "urn:test"
+
+// xmpDescription wraps a body of rdf:Description content in a valid XMP packet
+// with the rdf and t (urn:test) namespaces bound.
+func xmpDescription(body string) []byte {
+	xml := `<x:xmpmeta xmlns:x='adobe:ns:meta/'>` +
+		`<rdf:RDF xmlns:rdf='http://www.w3.org/1999/02/22-rdf-syntax-ns#'>` +
+		`<rdf:Description rdf:about='' xmlns:t='` + nsT + `'>` +
+		body +
+		`</rdf:Description></rdf:RDF></x:xmpmeta>`
+	return append([]byte("http://ns.adobe.com/xap/1.0/\x00"), []byte(xml)...)
+}
+
+// TestReadPropertiesElementForms exercises the element-form value reader across
+// the cases real writers produce: entity decoding, whitespace trimming, and an
+// empty element (which must be omitted, not stored as "").
+func TestReadPropertiesElementForms(t *testing.T) {
+	payload := xmpDescription(
+		`<t:Entity>B&amp;W &lt;push&gt;</t:Entity>` +
+			"<t:Spaced>\n    Ilford HP5\n  </t:Spaced>" +
+			`<t:Empty></t:Empty>`)
+	want := []Property{{nsT, "Entity"}, {nsT, "Spaced"}, {nsT, "Empty"}}
+	got, err := ReadProperties(payload, want)
+	if err != nil {
+		t.Fatalf("ReadProperties: %v", err)
+	}
+	if v := got[Property{nsT, "Entity"}]; v != "B&W <push>" {
+		t.Errorf("entity: got %q, want %q", v, "B&W <push>")
+	}
+	if v := got[Property{nsT, "Spaced"}]; v != "Ilford HP5" {
+		t.Errorf("whitespace: got %q, want %q", v, "Ilford HP5")
+	}
+	if v, ok := got[Property{nsT, "Empty"}]; ok {
+		t.Errorf("empty element should be omitted, got %q", v)
+	}
+}
+
+// TestReadPropertiesFirstOccurrenceWins pins the precedence contract: attribute
+// form (encountered first, on rdf:Description) wins over a later element form of
+// the same property, and among repeated elements the first wins.
+func TestReadPropertiesFirstOccurrenceWins(t *testing.T) {
+	// Same property in both forms: the attribute on rdf:Description is tokenised
+	// before the nested element, so it must win.
+	both := append([]byte("http://ns.adobe.com/xap/1.0/\x00"),
+		[]byte(`<x:xmpmeta xmlns:x='adobe:ns:meta/'>`+
+			`<rdf:RDF xmlns:rdf='http://www.w3.org/1999/02/22-rdf-syntax-ns#'>`+
+			`<rdf:Description rdf:about='' xmlns:t='`+nsT+`' t:Field='attr'>`+
+			`<t:Field>elem</t:Field>`+
+			`</rdf:Description></rdf:RDF></x:xmpmeta>`)...)
+	got, err := ReadProperties(both, []Property{{nsT, "Field"}})
+	if err != nil {
+		t.Fatalf("ReadProperties: %v", err)
+	}
+	if v := got[Property{nsT, "Field"}]; v != "attr" {
+		t.Errorf("attribute form should win over element form: got %q, want %q", v, "attr")
+	}
+
+	// Repeated element form: first occurrence wins.
+	dup := xmpDescription(`<t:Dup>first</t:Dup><t:Dup>second</t:Dup>`)
+	got, err = ReadProperties(dup, []Property{{nsT, "Dup"}})
+	if err != nil {
+		t.Fatalf("ReadProperties: %v", err)
+	}
+	if v := got[Property{nsT, "Dup"}]; v != "first" {
+		t.Errorf("duplicate element: got %q, want %q (first wins)", v, "first")
+	}
+}
+
+// TestReadPropertiesMalformedIsBestEffort pins the documented error contract:
+// a truncated packet is not reported as an error, and values collected before
+// the fault are still returned.
+func TestReadPropertiesMalformedIsBestEffort(t *testing.T) {
+	// Well-formed prefix carrying t:A as an attribute, then an unterminated tag.
+	payload := append([]byte("http://ns.adobe.com/xap/1.0/\x00"),
+		[]byte(`<rdf:Description xmlns:rdf='http://www.w3.org/1999/02/22-rdf-syntax-ns#'`+
+			` xmlns:t='`+nsT+`' t:A='kept'><t:B>never closed`)...)
+	got, err := ReadProperties(payload, []Property{{nsT, "A"}, {nsT, "B"}})
+	if err != nil {
+		t.Fatalf("malformed XML must not error, got: %v", err)
+	}
+	if v := got[Property{nsT, "A"}]; v != "kept" {
+		t.Errorf("value before the fault should survive: got %q, want %q", v, "kept")
+	}
+}

@@ -5,14 +5,14 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.3.0] - 2026-07-07
+## [0.3.1] - 2026-07-08
 
-Read-only XMP property extraction, additive and backward compatible: existing
-`jpeg`, `exif`, `iptc`, and `xmp` Parse/Clean behavior is unchanged, so consumers
-on 0.2.0 are unaffected. Still stdlib-only at runtime. Motivated by film-scan
-metadata (ExifNotes/AnalogExif), which writes a structured, cleaner copy of its
-fields to XMP than to the EXIF `UserComment` text block — including the lens and
-scanner software, which the EXIF block omits entirely.
+First published release carrying **`xmp.ReadProperties`** (read-only XMP property
+extraction). Supersedes the never-tagged 0.3.0: that version was only ever a local
+tag — never pushed, never proxy-resolvable — so 0.3.1 is where this feature actually
+lands for consumers. Additive and backward compatible: existing `jpeg`, `exif`,
+`iptc`, and `xmp` Parse/Clean behavior is unchanged, so consumers on 0.2.0 are
+unaffected. Still stdlib-only at runtime.
 
 ### Added
 
@@ -23,6 +23,33 @@ scanner software, which the EXIF block omits entirely.
   Read-only, no vocabulary of its own — the caller names the namespaces/fields it
   wants (e.g. the AnalogExif film schema, `aux:Lens`); policy stays in the consumer.
   New `xmp.Property{Namespace, Name}` type keys the request and the result map.
+  Motivated by film-scan metadata (ExifNotes/AnalogExif), which writes a structured,
+  cleaner copy of its fields to XMP than to the EXIF `UserComment` text block —
+  including the lens and scanner software, which the EXIF block omits entirely.
+
+### Changed
+
+- **`xmp.ReadProperties`** internals simplified — the redundant internal `key`
+  type is gone; `Property` is already the exact (namespace, name) lookup key, so
+  the match index is now a plain set keyed by `Property`.
+
+### Documented
+
+- `xmp.ReadProperties` now states its best-effort error contract explicitly: the
+  error result is non-nil only when the payload lacks the XMP signature; a
+  malformed or truncated packet is not reported, and whatever was parsed before
+  the fault is returned.
+
+### Tests
+
+- Added coverage for element-form entity decoding and whitespace trimming, empty
+  elements (omitted), attribute-over-element and first-element precedence, and the
+  best-effort behavior on truncated XML.
+
+## [0.3.0] — unreleased (superseded by 0.3.1)
+
+Tagged locally on 2026-07-07 but never pushed or proxy-resolvable; its sole change,
+`xmp.ReadProperties`, ships in 0.3.1 above. Recorded only to explain the version gap.
 
 ## [0.2.0] - 2026-07-02
 
@@ -74,5 +101,6 @@ at runtime (no `go.sum`). Differential EXIF conformance suite lives in its own
 - **`conformance/`** — separate module; differential EXIF tests validating the
   hand-rolled engine against `dsoprea/go-exif/v3` as a read oracle.
 
+[0.3.1]: https://codeberg.org/elkarrde/exifscalpel/releases/tag/v0.3.1
 [0.2.0]: https://codeberg.org/elkarrde/exifscalpel/releases/tag/v0.2.0
 [0.1.0]: https://codeberg.org/elkarrde/exifscalpel/releases/tag/v0.1.0
