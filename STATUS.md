@@ -1,6 +1,6 @@
 # Status
 
-*Last updated: 2026-07-08*
+*Last updated: 2026-09-23*
 
 | Field | Value |
 |:--|:--|
@@ -9,6 +9,7 @@
 | Build | `go build`/`vet`/`gofmt` clean; main module has **no `go.sum`** (zero runtime deps) |
 | Tests | `go test ./...` green (`jpeg`, `exif`, `xmp`, `iptc`); `go -C conformance test ./...` green |
 | Published | `v0.1.0`, `v0.2.0`, `v0.3.1` pushed to origin (Codeberg) + github. `v0.3.0` deliberately unreleased |
+| Website | In progress: `../exifscalpel-web/` (Hugo, like lapis-web) → `iso3200.org/exifscalpel/`; content done, design pending, not yet deployed |
 | Next | Optional: adopt `xmp.ReadProperties` in a consumer (e.g. tidy-exif film-scan reporting); Phase 7 (lapis XMP-scrub level); conformance extensions (XMP oracle, fuzzing) |
 
 ## ▶ Next session — start here
@@ -26,6 +27,16 @@ Remaining work is all optional and consumer-side:
    `../masterdata/testdata` (`Scan-*` files carry AnalogExif + `aux` XMP).
 2. **Phase 7** (lapis XMP-scrub level via `xmp.Clean`) and **conformance extensions**
    (XMP differential via an `exiftool` oracle; fuzzing) — see below.
+
+## ▶ Website (started 2026-09-23)
+
+A product site lives in the sibling repo **`../exifscalpel-web/`** — single-page Hugo,
+same setup as `../lapis-web`, deploy target `https://iso3200.org/exifscalpel/`. Content
+and structure are done (hero + `go get`, package cards, compiled code example, why,
+scope, used-by); styling is a placeholder until the design direction is chosen. Its own
+`STATUS.md` has the next steps. Decisions: links → GitHub, site name styled
+**EXIFscalpel**, a "Used by" section (Lapis, Tidy-EXIF). After go-live, add EXIFscalpel to
+the homepage `projects:` list in `../elkarr.de` (no `/projects` page for now).
 
 ## ▶ Prior milestone — start here (0.1.0)
 
